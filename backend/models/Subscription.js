@@ -31,6 +31,11 @@ const subscriptionSchema = new mongoose.Schema({
     required: [true, 'Please add a subscription amount'],
     min: 0,
   },
+  billingCycle: {
+    type: String,
+    enum: ['daily', 'weekly', 'monthly', 'yearly'],
+    default: 'monthly',
+  },
   notes: {
     type: String,
     trim: true,
@@ -40,6 +45,11 @@ const subscriptionSchema = new mongoose.Schema({
     type: Date,
   },
 }, { timestamps: true });
+
+// Compound indexes for optimal query performance on user-scoped filter operations
+subscriptionSchema.index({ user: 1, expiryDate: 1 });
+subscriptionSchema.index({ user: 1, category: 1 });
+subscriptionSchema.index({ user: 1, billingCycle: 1 });
 
 subscriptionSchema.virtual('statusInfo').get(function() {
   const now = new Date();

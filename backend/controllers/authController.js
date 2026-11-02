@@ -2,23 +2,32 @@ import User from '../models/User.js';
 import jwt from 'jsonwebtoken';
 
 const generateToken = (id) => {
+  if (!process.env.JWT_SECRET) {
+    throw new Error('JWT_SECRET is not configured on the server');
+  }
   return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRE,
+    expiresIn: process.env.JWT_EXPIRE || '30d',
   });
 };
 
 export const register = async (req, res, next) => {
   try {
-    const { name, email, password } = req.body;
+    const { firstName, lastName, gender, email, password } = req.body;
+
+    // Validate required fields explicitly before hitting the DB
+    if (!firstName || !lastName || !gender || !email || !password) {
+      return res.status(400).json({ success: false, message: 'All fields are required' });
+    }
 
     const userExists = await User.findOne({ email });
     if (userExists) {
-      return res.status(400).json({ success: false, message: 'User already exists' });
+      return res.status(400).json({ success: false, message: 'An account with this email already exists' });
     }
 
-
     const user = await User.create({
-      name,
+      firstName,
+      lastName,
+      gender,
       email,
       password,
     });
@@ -30,7 +39,10 @@ export const register = async (req, res, next) => {
       token,
       user: {
         id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
         name: user.name,
+        gender: user.gender,
         email: user.email,
       },
     });
@@ -62,7 +74,10 @@ export const login = async (req, res, next) => {
       token,
       user: {
         id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
         name: user.name,
+        gender: user.gender,
         email: user.email,
       },
     });
